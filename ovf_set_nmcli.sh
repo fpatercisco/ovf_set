@@ -4,7 +4,7 @@
 
 STATE_FILE=/root/.ovf_set_nmcli_ran
 
-if [[ -e "$STATE_FILE ]]; then
+if [[ -e "$STATE_FILE" ]]; then
 	echo `date`' ovf_set_nmcli has already run (this is not first boot).'
 	exit 1
 fi
@@ -32,13 +32,15 @@ if [[ -z "$IP" ]] && [[ -z "$NETMASK" ]]; then
 	nmcli con add con-name "$IFACE" ifname "$IFACE" type ethernet
 else
 	# If variables exist, configure interface with IP and netmask and GW. Also set DNS settings in same step.
-	nmcli con add con-name "$IFACE" ifname "$IFACE" type ethernet ip4 "$IP"/"$NETMASK" gw4 "$GATEWAY" && echo "IP set to $IP/$NETMASK. GATEWAY set to $GATEWAY"
+	PREFIX=`ipcalc -p "$IP" "$NETMASK" | awk -F= '{print $2}'`
+	nmcli con add con-name "$IFACE" ifname "$IFACE" type ethernet ip4 "$IP"/"$PREFIX" gw4 "$GATEWAY" && echo "IP set to $IP/$PREFIX. Gateway set to $GATEWAY"
 	nmcli con mod "$IFACE" ipv4.dns "$DNS" && echo "DNS set to $DNS"
 fi
 
 # set hostname
 if [[ -n "$NEW_HOSTNAME" ]]; then
 	hostnamectl set-hostname "$NEW_HOSTNAME" --static
+	echo "Hostname set to $NEW_HOSTNAME"
 fi
 
 touch "$STATE_FILE"
